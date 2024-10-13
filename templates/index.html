@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title style="margin-left: 300px;">Chatbot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <style>
+        .popupcontent{
+            display: none;
+            position: fixed;
+        }
+        
+    </style>
+    <!--<a href="https://www.flaticon.com/free-icons/microphone" title="microphone icons">Microphone icons created by Kiranshastry - Flaticon</a>-->
+</head>
+<body>
+    <button id="popupButton">Open</button>
+    <div class="popupcontent" id="popupcontent2">
+        <h1 id="educhad" style="color:white; font-family: 'Orbitron';margin-left: 30px;">EduChad</h1> 
+        <button id="closeButton">Close</button>
+        <button id="sidebar-button" style="align-self: right; padding: 7px 7px; background-color: #202833; color:aliceblue;border-radius: 6px;"><b>More</b></button>
+        <form action="https://www.google.com/search" method="get" target="_blank" id="google-search" style="margin-left: 300px;">
+            <img align="left" height="40px" width="120px"  src="{{ url_for('static', filename='google.png') }}" alt="google" id="imagee">
+            
+            <input type="text" name="q" autocomplete="off" placeholder=" Enter what you would like to search.." required id="search-box">
+        </form> 
+        <div class="sidebar-hide" id="sidebar">
+            <button id="close-sidebar-button" style="align-self: right;padding: 10px;background-color:#202833;color:aliceblue; border-radius: 6px;"><b>Close</b></button>
+            <a href="https://www.learncbse.in/" target="_blank" class="resources">LearnCBSE</a>
+            <a href="https://www.toppr.com/ask/" target="_blank" class="resources">Toppr</a>
+            <a href="https://www.w3schools.com/" target="_blank" class="resources">W3Schools</a>
+            <a href="https://www.duolingo.com/" target="_blank" class="resources">Duolingo</a>
+        </div>
+        <div style="display: flex;">
+            <div id="chat-box" style="height: 300px;width: 700px; overflow-y: scroll;margin-left: 300px; border: 1px solid #ccc; padding: 10px;"></div>
+            <img id="chatimage" alt="">
+            <iframe id="chatvid" height="315" width="559" style="visibility:hidden"></iframe>
+        </div>
+        <div class="container">
+            <input type="text" name="text" id="user-input" class="input" placeholder="Type your message...">
+            <button class="search__btn">
+                ➤
+            </button>
+            <button onclick="recognization.start();" id="speak-button"><b>🎙️</b></button>
+        </div>
+        <!--<button onclick="sendMessage()" id="submit-button"><b>Send</b></button>-->
+        
+
+        <script>
+            let sidebar = false;
+
+            let recognization = new webkitSpeechRecognition();
+            recognization.onstart = () => {
+                appendMessage('Bot', 'Listening.......');;
+            }
+            recognization.onresult = (e) => {
+                var transcript = e.results[0][0].transcript;
+                var confidence = e.results[0][0].confidence;
+                document.getElementById("user-input").value = transcript
+                sendMessage()
+            }
+        </script>
+        <script>
+            // Use JavaScript to toggle the sidebar on button hover
+            const sidebarButton = document.getElementById('sidebar-button');
+            const closeSidebarButton = document.getElementById('close-sidebar-button');
+            const sidebarElement = document.getElementById('sidebar');
+
+            sidebarButton.addEventListener('click', () => {
+                sidebarElement.classList.remove('sidebar-hide');
+                sidebarElement.classList.add('sidebar-show');
+            });
+
+            closeSidebarButton.addEventListener('click', () => {
+                sidebarElement.classList.remove('sidebar-show');
+                sidebarElement.classList.add('sidebar-hide');
+            });
+
+
+            document.addEventListener('keypress',(event)=>{
+                if(event.key == 'Enter') sendMessage();
+            })
+
+            // Rest of your JavaScript code
+        </script>
+        <script>
+            function appendMessage(sender, message){
+                const chatBox = document.getElementById('chat-box');
+                const messageDiv = document.createElement('div');
+                messageDiv.textContent = sender + ': ' + message;
+
+                if(sender == "Bot"){
+                    // messageDiv.textContent = message;
+                    messageDiv.classList.add("bot-msg")
+                }else{
+                    // messageDiv.textContent = message;
+                    messageDiv.classList.add("user-msg")
+                }
+
+                chatBox.appendChild(messageDiv);
+            }
+
+            function sendMessage(){
+                const userInput = document.getElementById('user-input').value;
+                appendMessage('You', userInput);
+
+                fetch('/get_response', {
+                    method: 'POST',
+                    body: new URLSearchParams({ user_input: userInput }),
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    appendMessage('Bot', data.response);
+
+                    // Create a new SpeechSynthesisUtterance object
+                    let utterance = new SpeechSynthesisUtterance();
+
+                    // Set the text and voice of the utterance
+                    utterance.text = data.response;
+                    utterance.voice = window.speechSynthesis.getVoices()[0];
+
+                    // Speak the utterance
+                    window.speechSynthesis.speak(utterance);
+
+
+
+                    document.getElementById('chatimage').src = data.imageurl;
+
+                    let vid = document.getElementById("chatvid")
+
+
+                    if(data.vidurl){
+                        vid.style.visibility = 'visible'
+                        vid.src = data.vidurl
+                        console.log(vid);
+                    }else{
+                        vid.style.visibility = 'hidden'
+
+                    }
+                });
+
+                document.getElementById('user-input').value = '';
+            }
+        </script>
+
+    </div>
+    <script>
+        // Get references to the button and popup
+        const popupButton = document.getElementById('popupButton');
+        const popupcontent = document.getElementById('popupcontent2');
+        const closeButton = document.getElementById('closeButton');
+    
+        // Function to open the popup
+        popupButton.addEventListener('click', () => {
+            popupcontent.style.display = 'block';
+        });
+    
+        // Function to close the popup
+        closeButton.addEventListener('click', () => {
+            popupcontent.style.display = 'none';
+        });
+    </script>
+</body>
+</html>
